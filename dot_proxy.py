@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # pylint: disable=C,R,W
-"""DNS over TCP Proxy Server"""
+"""DNS over TLS Proxy Server"""
 import argparse
 import asyncio
 import logging
