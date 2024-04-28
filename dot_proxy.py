@@ -52,7 +52,7 @@ class DOTClientPool:
     @asynccontextmanager
     async def client(self, timeout: float = 0.1) -> AsyncIterator[DOTClient]:
         client = await self.get_client(timeout)
-        logging.debug("get client: 0x%x", id(client))
+        logging.debug("get client: 0x%X", id(client))
         try:
             yield client
         finally:
