@@ -2,7 +2,7 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/dot-proxy)]() <!-- [![PyPI - License](https://img.shields.io/pypi/l/dot-proxy)]() [![PyPI - Downloads](https://img.shields.io/pypi/dm/dot-proxy)]() -->
 
-DNS over TLS Proxy Server for Non-Systemd Distros.
+DNS over TLS Proxy Server.
 
 ## Install and Run
 

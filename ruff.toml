@@ -1,0 +1,15 @@
+line-length = 88
+indent-width = 4
+
+target-version = "py311"
+
+[lint]
+select = ["ALL"]
+
+# можно просто D (от docstring) указать вместо перечисления DXXX
+ignore = ["D101","D102","D103","D107","ERA001","ANN401"]
+
+fixable = ["ALL"]
+
+[format]
+quote-style = "double"

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dot-proxy"
-description = "DNS over TLS Proxy Server"
+description = "DNS over TLS Proxy Server."
 authors = [{name = "Sergey M"}]
 readme = "README.md"
 license = {file = "LICENSE"}
