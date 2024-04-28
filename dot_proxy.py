@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Sequence
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __author__ = "Sergey M"
 
 
