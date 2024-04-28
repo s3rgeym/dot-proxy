@@ -108,7 +108,8 @@ def _parse_args(
     argv: Sequence[str] | None,
 ) -> tuple[argparse.ArgumentParser, NameSpace]:
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("-H", "--host", help="local host", default="127.0.0.1")
     parser.add_argument(
