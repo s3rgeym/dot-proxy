@@ -3,6 +3,7 @@ version: "3.9"
 services:
   dot-proxy:
     image: local/dot-proxy
+    container_name: dot-proxy
     build: .
     env_file: .env
     ports:
