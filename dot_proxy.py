@@ -5,13 +5,12 @@ import argparse
 import asyncio
 import logging
 import ssl
-import uuid
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Sequence
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Sergey M"
 
 
@@ -19,7 +18,6 @@ __author__ = "Sergey M"
 class DOTClient:
     host: str
     port: int = 853
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     reader: asyncio.StreamReader = None
     writer: asyncio.StreamWriter = None
 
@@ -52,17 +50,15 @@ class DOTClientPool:
             self._pool.append(client)
 
     @asynccontextmanager
-    async def get_client(
-        self, timeout: float = 0.1
-    ) -> AsyncIterator[DOTClient]:
-        client = await self.acquire_client(timeout)
-        logging.debug("get client: %r", client)
+    async def client(self, timeout: float = 0.1) -> AsyncIterator[DOTClient]:
+        client = await self.get_client(timeout)
+        logging.debug("get client: 0x%x", id(client))
         try:
             yield client
         finally:
             self.release_client(client)
 
-    async def acquire_client(self, timeout: float) -> DOTClient:
+    async def get_client(self, timeout: float) -> DOTClient:
         while True:
             try:
                 return self._pool.popleft()
@@ -82,8 +78,6 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
     ) -> None:
         self.client_pool = DOTClientPool(max_clients, remote_host, remote_port)
         self.done = asyncio.get_event_loop().create_future()
-        self.request_queue = asyncio.Queue()
-        self.task = asyncio.create_task(self.process())
 
     def connection_made(self, transport: asyncio.DatagramTransport) -> None:
         self.transport = transport
@@ -92,29 +86,25 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         self, data: bytes, addr: tuple[str | Any, int]
     ) -> None:
         logging.debug("received from %s#%i: %s", *addr, data.hex(" "))
-        self.request_queue.put_nowait((data, addr))
+        asyncio.create_task(self.process(data, addr))
+
+    async def process(self, data: bytes, addr: tuple[str, int]) -> None:
+        async with self.client_pool.client() as client:
+            await client.send_message(data)
+            message = await client.recieve_message()
+            logging.debug("message from remote: %s", message.hex(" "))
+            self.transport.sendto(message, addr)
 
     def error_received(self, exc: Exception) -> None:
         logging.exception(exc)
         if not self.done.done():
             self.done.set_exception(exc)
-            self.task.cancel()
 
     def connection_lost(self, exc: Exception | None) -> None:
         if exc:
             logging.exception(exc)
         if not self.done.done():
             self.done.set_result(None)
-            self.task.cancel()
-
-    async def process(self) -> None:
-        while not self.done.done():
-            data, addr = await self.request_queue.get()
-            async with self.client_pool.get_client() as client:
-                await client.send_message(data)
-                message = await client.recieve_message()
-                logging.debug("message from remote: %s", message.hex(" "))
-                self.transport.sendto(message, addr)
 
 
 class NameSpace(argparse.Namespace):
