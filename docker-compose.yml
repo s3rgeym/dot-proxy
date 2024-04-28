@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  dot-proxy:
+    image: local/dot-proxy
+    build: .
+    env_file: .env
+    ports:
+      - "127.0.0.52:53:9053/udp"
+    restart: unless-stopped
