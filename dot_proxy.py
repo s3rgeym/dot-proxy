@@ -155,10 +155,12 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         async with self.sem, self.pool.get_connection() as conn:
             await conn.send_message(data)
             message = await conn.receive_message()
+            stripped_message = message.rstrip(b"\0")
+
             logging.debug(
                 "reply from %s#%d: %s",
                 *conn.writer.get_extra_info("peername"),
-                message.hex(" "),
+                stripped_message.hex(" ") + [" ..", ""][message == stripped_message],
             )
             self.transport.sendto(message, addr)
 
