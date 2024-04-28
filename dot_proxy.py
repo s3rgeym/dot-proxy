@@ -96,13 +96,13 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
             self.transport.sendto(message, addr)
 
     def error_received(self, exc: Exception) -> None:
-        logging.exception(exc)
+        # logging.exception(exc)
         if not self.done.done():
             self.done.set_exception(exc)
 
     def connection_lost(self, exc: Exception | None) -> None:
-        if exc:
-            logging.exception(exc)
+        # if exc:
+        #     logging.exception(exc)
         if not self.done.done():
             self.done.set_result(None)
 
