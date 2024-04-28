@@ -140,7 +140,7 @@ def _parse_args(
 async def run(argv: Sequence[str] | None) -> None:
     parser, args = _parse_args(argv)
 
-    log_level = min(
+    log_level = max(
         logging.DEBUG, logging.CRITICAL - args.verbose * logging.DEBUG
     )
 
