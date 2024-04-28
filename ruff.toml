@@ -7,7 +7,7 @@ target-version = "py311"
 select = ["ALL"]
 
 # можно просто D (от docstring) указать вместо перечисления DXXX
-ignore = ["D101","D102","D103","D107","ERA001","ANN401"]
+ignore = ["D101","D102","D103","D107","ERA001","ANN401","TD","FIX","RUF"]
 
 fixable = ["ALL"]
 
