@@ -35,7 +35,7 @@ class DOTClient:
         self.writer.write(int.to_bytes(len(message), 2) + message)
         await self.writer.drain()
 
-    async def recieve_message(self) -> bytes:
+    async def receive_message(self) -> bytes:
         # Ответ так же содержит 2 байта в начале - длину ответа
         return (await self.reader.read(4096))[2:]
 
@@ -96,8 +96,13 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         async with self.sem:
             async with self.client_pool.get_client() as client:
                 await client.send_message(data)
-                message = await client.recieve_message()
-                logging.debug("message from remote %s#%d: %s", client.host, client.port, message.hex(" "))
+                message = await client.receive_message()
+                logging.debug(
+                    "message from remote %s#%d: %s",
+                    client.host,
+                    client.port,
+                    message.hex(" "),
+                )
                 self.transport.sendto(message, addr)
 
     def error_received(self, exc: Exception) -> None:
