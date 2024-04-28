@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Sequence
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __author__ = "Sergey M"
 
 
@@ -50,23 +50,26 @@ class DOTClientPool:
             self._pool.append(client)
 
     @asynccontextmanager
-    async def client(self, timeout: float = 0.1) -> AsyncIterator[DOTClient]:
-        client = await self.get_client(timeout)
+    async def get_client(
+        self, timeout: float = 0.1
+    ) -> AsyncIterator[DOTClient]:
+        client = await self._get_client_from_pool(timeout)
         logging.debug("get client: 0x%X", id(client))
         try:
             yield client
         finally:
             self.release_client(client)
 
-    async def get_client(self, timeout: float) -> DOTClient:
+    async def _get_client_from_pool(self, timeout: float) -> DOTClient:
         while True:
             try:
-                return self._pool.popleft()
+                return self._pool.pop()
             except IndexError:
                 await asyncio.sleep(timeout)
 
     def release_client(self, client: DOTClient) -> None:
-        self._pool.appendleft(client)
+        """returm client to the pool"""
+        self._pool.append(client)
 
 
 class DOTProxyProtocol(asyncio.DatagramProtocol):
@@ -77,6 +80,7 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         max_clients: int = 10,
     ) -> None:
         self.client_pool = DOTClientPool(max_clients, remote_host, remote_port)
+        self.sem = asyncio.Semaphore(max_clients)
         self.done = asyncio.get_event_loop().create_future()
 
     def connection_made(self, transport: asyncio.DatagramTransport) -> None:
@@ -89,11 +93,12 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         asyncio.create_task(self.process(data, addr))
 
     async def process(self, data: bytes, addr: tuple[str, int]) -> None:
-        async with self.client_pool.client() as client:
-            await client.send_message(data)
-            message = await client.recieve_message()
-            logging.debug("message from remote: %s", message.hex(" "))
-            self.transport.sendto(message, addr)
+        async with self.sem:
+            async with self.client_pool.get_client() as client:
+                await client.send_message(data)
+                message = await client.recieve_message()
+                logging.debug("message from remote: %s", message.hex(" "))
+                self.transport.sendto(message, addr)
 
     def error_received(self, exc: Exception) -> None:
         # logging.exception(exc)
