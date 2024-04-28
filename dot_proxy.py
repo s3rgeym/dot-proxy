@@ -114,7 +114,7 @@ class ClientConnectionPool:
                 await asyncio.sleep(timeout)
 
     def release_connection(self: Self, client: ClientConnection) -> None:
-        """Returm client to the pool."""
+        """Returm client connection to the pool."""
         self._pool.append(client)
 
 
