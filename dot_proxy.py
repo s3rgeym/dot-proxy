@@ -97,7 +97,7 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
             async with self.client_pool.get_client() as client:
                 await client.send_message(data)
                 message = await client.recieve_message()
-                logging.debug("message from remote: %s", message.hex(" "))
+                logging.debug("message from remote %s#%d: %s", client.host, client.port, message.hex(" "))
                 self.transport.sendto(message, addr)
 
     def error_received(self, exc: Exception) -> None:
