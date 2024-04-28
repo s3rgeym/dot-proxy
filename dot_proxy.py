@@ -5,15 +5,21 @@ import argparse
 import asyncio
 import logging
 import ssl
+import uuid
+from collections import deque
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Sequence
+
+__version__ = "0.1.0"
+__author__ = "Sergey M"
 
 
 @dataclass
 class DOTClient:
     host: str
     port: int = 853
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     reader: asyncio.StreamReader = None
     writer: asyncio.StreamWriter = None
 
@@ -40,18 +46,31 @@ class DOTClientPool:
     def __init__(
         self, max_clients: int = 10, *args: Any, **kwargs: Any
     ) -> None:
-        self.pool = asyncio.Queue(max_clients)
+        self._pool = deque(maxlen=max_clients)  # asyncio.Queue(max_clients)
         for _ in range(max_clients):
             client = DOTClient(*args, **kwargs)
-            self.pool.put_nowait(client)
+            self._pool.append(client)
 
     @asynccontextmanager
-    async def get_client(self) -> AsyncIterator[DOTClient]:
-        client = await self.pool.get()
+    async def get_client(
+        self, timeout: float = 0.1
+    ) -> AsyncIterator[DOTClient]:
+        client = await self.acquire_client(timeout)
+        logging.debug("get client: %r", client)
         try:
             yield client
         finally:
-            await self.pool.put(client)
+            self.release_client(client)
+
+    async def acquire_client(self, timeout: float) -> DOTClient:
+        while True:
+            try:
+                return self._pool.popleft()
+            except IndexError:
+                await asyncio.sleep(timeout)
+
+    def release_client(self, client: DOTClient) -> None:
+        self._pool.appendleft(client)
 
 
 class DOTProxyProtocol(asyncio.DatagramProtocol):
@@ -76,11 +95,14 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         self.request_queue.put_nowait((data, addr))
 
     def error_received(self, exc: Exception) -> None:
+        logging.exception(exc)
         if not self.done.done():
             self.done.set_exception(exc)
             self.task.cancel()
 
     def connection_lost(self, exc: Exception | None) -> None:
+        if exc:
+            logging.exception(exc)
         if not self.done.done():
             self.done.set_result(None)
             self.task.cancel()
@@ -150,6 +172,8 @@ async def run(argv: Sequence[str] | None) -> None:
         ),
         local_addr=(args.host, args.port),
     )
+
+    logging.info("server started at %s:%d", args.host, args.port)
 
     try:
         await protocol.done

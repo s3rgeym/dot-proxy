@@ -4,6 +4,8 @@ DNS over TLS Proxy Server for Non-Systemd Distros.
 
 ## Install and Run
 
+Via Docker Compose:
+
 ```bash
 # clone project
 $ git clone https://github.com/s3rgeym/dot-proxy
@@ -36,7 +38,19 @@ www.linux.org.ru.       2072    IN      A       178.248.233.6
 ;; SERVER: 127.0.0.52#53(127.0.0.52) (UDP)
 ;; WHEN: Sun Apr 28 05:55:31 MSK 2024
 ;; MSG SIZE  rcvd: 468
+
+
+# To view logs
+$ docker-compose logs -f
 ```
+
+Using PIP:
+
+```bash
+pip install dot-proxy
+dot-proxy -h
+```
+
 
 ## Configure System DNS
 

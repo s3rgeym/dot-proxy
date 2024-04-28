@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dot-proxy"
+description = "DNS over TLS Proxy Server"
+authors = [{name = "Sergey M"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+
+classifiers = [
+  "Topic :: Internet"
+]
+
+requires-python = ">=3.11.7"
+
+dependencies = [
+  "requests",
+]
+
+dynamic = ["version"]
+
+# pip install -e '.[dev]'
+# pip install -e '.[test]'
+[project.optional-dependencies]
+test = [
+  "pytest",
+]
+
+dev = [
+  "black",
+  "pylint",
+]
+
+[project.urls]
+Repository = "https://github.com/s3rgeym/dot-proxy.git"
+
+[tool.setuptools.dynamic]
+version = {attr = "dot_proxy.__version__"}
+
+[project.scripts]
+dot-proxy = 'dot_proxy:main'
