@@ -204,6 +204,7 @@ def _parse_args(
     parser.add_argument("--remote-host", help="remote host", type=str)
     parser.add_argument("--remote-port", help="remote port", type=int)
     parser.add_argument(
+        "-c",
         "--max-connections",
         help="max client connections",
         default=10,
