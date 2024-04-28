@@ -63,23 +63,8 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
     ) -> None:
         self.client_pool = DOTClientPool(max_clients, remote_host, remote_port)
         self.done = asyncio.get_event_loop().create_future()
-        self.queue = asyncio.Queue()
+        self.request_queue = asyncio.Queue()
         self.task = asyncio.create_task(self.process())
-
-    async def process(self) -> None:
-        while not self.done.done():
-            async with self.client_pool.get_client() as client:
-                data, addr = await self.queue.get()
-
-                logging.debug("send to remote: %r", addr)
-
-                await client.send_message(data)
-
-                message = await client.recieve_message()
-
-                logging.debug("message from remote: %s", message.hex(" "))
-
-                self.transport.sendto(message, addr)
 
     def connection_made(self, transport: asyncio.DatagramTransport) -> None:
         self.transport = transport
@@ -88,8 +73,7 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         self, data: bytes, addr: tuple[str | Any, int]
     ) -> None:
         logging.debug("received from %s#%i: %s", *addr, data.hex(" "))
-
-        self.queue.put_nowait((data, addr))
+        self.request_queue.put_nowait((data, addr))
 
     def error_received(self, exc: Exception) -> None:
         if not self.done.done():
@@ -100,6 +84,15 @@ class DOTProxyProtocol(asyncio.DatagramProtocol):
         if not self.done.done():
             self.done.set_result(None)
             self.task.cancel()
+
+    async def process(self) -> None:
+        while not self.done.done():
+            data, addr = await self.request_queue.get()
+            async with self.client_pool.get_client() as client:
+                await client.send_message(data)
+                message = await client.recieve_message()
+                logging.debug("message from remote: %s", message.hex(" "))
+                self.transport.sendto(message, addr)
 
 
 class NameSpace(argparse.Namespace):
